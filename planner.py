@@ -7,7 +7,7 @@ import requests, config
 # Problem Data Definition #
 ###########################
 def create_data_model():
-  """Stores the data for the problem"""
+  # stores all of the data for the problem
   data = {}
 
   # create the locations and demands
@@ -37,12 +37,12 @@ def create_data_model():
       request = requests.get(baseURL + origin + location.replace(' ', '') + destinations + key).json()
       request = request['rows'][0]['elements']
       for elem in request:
-          print(elem)
           tempList.append(int(elem['duration']['value']))
       _distances.append(tempList)
       tempList = []
   
-  capacities = [700]
+  # the capacity of the vehicle; this is a random number because we are ideally not listing locations that we do not want
+  capacities = [1000]
   data["distances"] = _distances
   data["num_locations"] = len(_distances)
   data["num_vehicles"] = 1
@@ -53,15 +53,16 @@ def create_data_model():
 
 #######################
 # Problem Constraints #
-#######################
-#def manhattan_distance(position_1, position_2):
-#  """Computes the Manhattan distance between two points"""
-#  return (abs(position_1[0] - position_2[0]) + abs(position_1[1] - position_2[1]))
+#######################i
 
+# google used to have a 'manhattan distance' function here and if the program quits working it is quite likely becaue of this
+
+# returns the distances between all points (list of lists)
 def create_distance_callback(data):
   """Creates callback to return distance between points."""
   distances = data["distances"]
 
+# returns the distance between two nodes
   def distance_callback(from_node, to_node):
     """Returns the manhattan distance between the two nodes"""
     return distances[from_node][to_node]
