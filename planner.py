@@ -33,22 +33,26 @@ def create_data_model():
 
   tempList = []
 
-  for lcoation in locations:
+  for location in locations:
       request = requests.get(baseURL + origin + location.replace(' ', '') + destinations + key).json()
       request = request['rows'][0]['elements']
       for elem in request:
+        try:
           tempList.append(int(elem['duration']['value']))
+        except:
+          tempList.append(100000)
       _distances.append(tempList)
       tempList = []
   
   # the capacity of the vehicle; this is a random number because we are ideally not listing locations that we do not want
-  capacities = [1000]
-  data["distances"] = _distances
+  capacities = [400]
+  data["times"] = _distances
   data["num_locations"] = len(_distances)
   data["num_vehicles"] = 1
   data["depot"] = 0
   data["demands"] = demands
   data["vehicle_capacities"] = capacities
+  data['locations'] = locations
   return data
 
 #######################
@@ -58,15 +62,15 @@ def create_data_model():
 # google used to have a 'manhattan distance' function here and if the program quits working it is quite likely becaue of this
 
 # returns the distances between all points (list of lists)
-def create_distance_callback(data):
+def create_time_callback(data):
   """Creates callback to return distance between points."""
-  distances = data["distances"]
+  times = data["times"]
 
 # returns the distance between two nodes
-  def distance_callback(from_node, to_node):
+  def time_callback(from_node, to_node):
     """Returns the manhattan distance between the two nodes"""
-    return distances[from_node][to_node]
-  return distance_callback
+    return times[from_node][to_node]
+  return time_callback
 
 def create_demand_callback(data):
     """Creates callback to get demands at each location."""
@@ -84,11 +88,11 @@ def add_capacity_constraints(routing, data, demand_callback):
         True, # start cumul to zero
         capacity)
     
-def add_distance_dimension(routing, distance_callback):
-    distance = 'Distance'
-    maximum_distance = 648000
-    routing.AddDimension(distance_callback, 0, maximum_distance, True, distance)
-    distance_dimension = routing.GetDimensionOrDie(distance)
+def add_time_dimension(routing, time_callback):
+    time = 'Distance'
+    maximum_time = 648000
+    routing.AddDimension(time_callback, 0, maximum_time, True, time)
+    time_dimension = routing.GetDimensionOrDie(time)
     #distance_dimension.SetGlobalSpanCostCoefficient(100)
 
 ###########
@@ -96,14 +100,14 @@ def add_distance_dimension(routing, distance_callback):
 ###########
 def print_solution(data, routing, assignment):
     """Print routes on console."""
-    total_dist = 0
+    total_time = 0
     visited_locations = []
     dropped_locations = list(range(data["num_locations"]))
 
     for vehicle_id in range(data["num_vehicles"]):
         index = routing.Start(vehicle_id)
         plan_output = 'Route for vehicle {0}:\n'.format(vehicle_id)
-        route_dist = 0
+        route_time = 0
         route_load = 0
         while not routing.IsEnd(index):
             node_index = routing.IndexToNode(index)
@@ -111,19 +115,22 @@ def print_solution(data, routing, assignment):
             visited_locations.append(next_node_index)
             if next_node_index in dropped_locations:
                 dropped_locations.remove(next_node_index)
-            route_dist += routing.GetArcCostForVehicle(node_index, next_node_index, vehicle_id)
+            route_time += routing.GetArcCostForVehicle(node_index, next_node_index, vehicle_id)
             route_load += data["demands"][node_index]
-            plan_output += ' {0} Load({1}) -> '.format(node_index, route_load)
+            plan_output += ' {0} -> '.format(data['locations'][node_index])
             index = assignment.Value(routing.NextVar(index))
 
         node_index = routing.IndexToNode(index)
-        total_dist += route_dist
-        plan_output += ' {0} Load({1})\n'.format(node_index, route_load)
-        plan_output += 'Distance of the route: {0}m\n'.format(route_dist)
-        plan_output += 'Load of the route: {0}\n'.format(route_load)
+        total_time += route_time
+        plan_output += ' {0} Load({1})\n'.format(data['locations'][node_index], route_load)
+        plan_output += 'Time of the route: {0}m\n'.format(route_time)
         print(plan_output)
-    print('Total Distance of all routes: {0}m'.format(total_dist))
-    print('Dropped visits: ', list(set(range(data["num_locations"])) - set(visited_locations)))
+    print('Total Time of all routes: {0}m'.format(total_time))
+    droppedLocations = list(set(range(data["num_locations"])) - set(visited_locations))
+    droppedNames = []
+    for location in droppedLocations:
+        droppedNames.append(data['locations'][location])
+    print('Dropped visits: ', droppedNames)
 
 ########
 # Main #
@@ -138,9 +145,9 @@ def main():
       data["num_vehicles"],
       data["depot"])
   # Define weight of each edge
-  distance_callback = create_distance_callback(data)
-  add_distance_dimension(routing, distance_callback)
-  routing.SetArcCostEvaluatorOfAllVehicles(distance_callback)
+  time_callback = create_time_callback(data)
+  add_time_dimension(routing, time_callback)
+  routing.SetArcCostEvaluatorOfAllVehicles(time_callback)
   # Add Capacity constraint
   demand_callback = create_demand_callback(data)
   add_capacity_constraints(routing, data, demand_callback)
@@ -150,7 +157,7 @@ def main():
       routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC)
 
   # Adding penalty costs to allow dropping visits.
-  penalty = 1000000
+  penalty = 4000000
   for i in range(1, data["num_locations"]):
     routing.AddDisjunction([routing.NodeToIndex(i)], penalty)
   # Solve the problem.
