@@ -9,13 +9,14 @@ import requests, config
 def create_data_model():
   # stores all of the data for the problem
   data = {}
-
+  tempDemands = []
   # create the locations and demands
   locations = open('locations.txt', 'r').read().splitlines()
   demands = open('weights.txt', 'r').read().splitlines()
-  length = len(demands)
-  for i in range(0, length):
-      demands[i] = int(demands[i])
+
+  for demand in demands:
+      tempDemands.append(int(demand))
+  demands = tempDemands
 
   # creates the parts of the url for the get request
   key = '&key=' + config.apiKey
