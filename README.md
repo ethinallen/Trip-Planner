@@ -8,9 +8,9 @@ A program to help you plan a road trip.
 locations.txt is a text file of all of the locations that you want to go to
 
 like this:
-Clemson, SC\n
-Aiken, SC\n
-Ft. Lauderdale, FL\n
+Clemson, SC/n
+Aiken, SC/n
+Ft. Lauderdale, FL/n
 
 It is okay to keep spaces and capitalization but they should not matter
 
