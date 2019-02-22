@@ -8,6 +8,7 @@ A program to help you plan a road trip.
 locations.txt is a text file of all of the locations that you want to go to
 
 like this:
+
 Clemson, SC
 
 Aiken, SC
