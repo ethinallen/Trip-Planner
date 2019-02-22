@@ -1,4 +1,5 @@
 ### ON HOLD; $500 IN API REQUESTS; NEED TO RESTRUCTURE 
+## NOT ON HOLD ANYMORE: GOOGLE IS A FORGIVING [EXTRAORDINARILY WEALTHY] COMPANY
 
 # trip-planner
 A program to help you plan a road trip. 
